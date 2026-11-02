@@ -47,6 +47,18 @@ final class FileServerTests: XCTestCase {
         XCTAssertEqual(server.fileCount, 0)
     }
 
+    func testClearRemovesRegisteredFiles() throws {
+        let server = FileServer()
+        let url = try createTempFile(name: "cleared.nsp", content: Data([0xAA]))
+        server.register(files: [url])
+
+        server.clear()
+
+        XCTAssertEqual(server.fileList(), "")
+        XCTAssertEqual(server.fileCount, 0)
+        XCTAssertThrowsError(try server.readRange(fileName: "cleared.nsp", offset: 0, size: 1))
+    }
+
     func testDuplicateRegistrationUsesLastURL() throws {
         let content1 = Data([0xAA])
         let content2 = Data([0xBB])

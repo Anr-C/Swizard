@@ -117,6 +117,7 @@ public final class InstallationCoordinator {
         progress.clear()
         logs.removeAll()
         queuedURLs.removeAll()
+        fileServer.clear()
         networkInfo = nil
     }
 

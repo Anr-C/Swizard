@@ -24,6 +24,35 @@ private final class FailingConnectTransport: TransportProtocol, @unchecked Senda
     func write(_ data: Data) async throws {}
 }
 
+private final class ListCapturingTransport: TransportProtocol, @unchecked Sendable {
+    private var readQueue: [Data]
+    private(set) var writtenData: [Data] = []
+
+    init() {
+        readQueue = [
+            DBIHeader(commandType: .request, commandID: .list, dataSize: 0).encoded(),
+            DBIHeader(commandType: .ack, commandID: .list, dataSize: 0).encoded(),
+            DBIHeader(commandType: .request, commandID: .exit, dataSize: 0).encoded(),
+        ]
+    }
+
+    func connect() async throws {}
+    func disconnect() async throws {}
+
+    func read(maxLength: Int) async throws -> Data {
+        guard !readQueue.isEmpty else { throw ListCapturingTransportError.noMoreData }
+        return readQueue.removeFirst()
+    }
+
+    func write(_ data: Data) async throws {
+        writtenData.append(data)
+    }
+}
+
+private enum ListCapturingTransportError: Error {
+    case noMoreData
+}
+
 // MARK: - Tests
 
 final class InstallationCoordinatorTests: XCTestCase {
@@ -138,6 +167,30 @@ final class InstallationCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.progress.files.isEmpty)
         XCTAssertTrue(coordinator.logs.isEmpty)
         cleanup(url)
+    }
+
+    @MainActor
+    func testDBIBackendListDoesNotIncludeFilesClearedFromQueue() async throws {
+        let transport = ListCapturingTransport()
+        let coordinator = InstallationCoordinator(transport: transport)
+        coordinator.transportMode = .dbiBackend
+
+        let oldURL = try createTempFile(name: "old_queue.nsp", content: Data([0xAA]))
+        let newURL = try createTempFile(name: "new_queue.nsp", content: Data([0xBB]))
+        defer {
+            cleanup(oldURL)
+            cleanup(newURL)
+        }
+
+        coordinator.queueFiles([oldURL])
+        coordinator.reset()
+        coordinator.queueFiles([newURL])
+        coordinator.startInstallation()
+
+        try await Task.sleep(for: .seconds(0.5))
+
+        XCTAssertEqual(coordinator.state, .complete)
+        XCTAssertEqual(String(data: transport.writtenData[1], encoding: .utf8), "new_queue.nsp\n")
     }
 
     // MARK: - Mode switching
