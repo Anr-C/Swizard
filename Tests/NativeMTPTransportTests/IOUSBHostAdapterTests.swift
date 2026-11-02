@@ -135,6 +135,6 @@ final class IOUSBHostAdapterTests: XCTestCase {
     func testIOUSBHostErrorDescriptions() {
         XCTAssertNotNil(IOUSBHostError.deviceNotFound.errorDescription)
         XCTAssertNotNil(IOUSBHostError.seizeRejected.errorDescription)
-        XCTAssertTrue(IOUSBHostError.seizeRejected.errorDescription!.contains("replugging"))
+        XCTAssertTrue(IOUSBHostError.seizeRejected.errorDescription!.contains("重新连接"))
     }
 }

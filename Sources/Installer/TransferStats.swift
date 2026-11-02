@@ -32,9 +32,9 @@ public struct TransferStats: Sendable, Equatable {
         let minutes = Int(eta) / 60
         let seconds = Int(eta) % 60
         if minutes > 0 {
-            return "~\(minutes)m \(seconds)s"
+            return "约 \(minutes) 分 \(seconds) 秒"
         } else {
-            return "~\(seconds)s"
+            return "约 \(seconds) 秒"
         }
     }
 }

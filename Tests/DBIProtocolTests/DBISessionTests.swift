@@ -94,9 +94,9 @@ final class DBISessionTests: XCTestCase {
         session.delegate = delegate
         try await session.run(transport: transport, fileServer: fileServer)
 
-        // Should have logged: "DBI session started", "Received exit (request)", "DBI session ended"
-        XCTAssertTrue(delegate.logMessages.contains(where: { $0.contains("session started") }))
-        XCTAssertTrue(delegate.logMessages.contains(where: { $0.contains("session ended") }))
+        // Verify the session lifecycle is logged.
+        XCTAssertTrue(delegate.logMessages.contains(where: { $0.contains("会话已启动") }))
+        XCTAssertTrue(delegate.logMessages.contains(where: { $0.contains("会话已结束") }))
         XCTAssertTrue(delegate.exitReceived)
     }
 
@@ -165,15 +165,15 @@ final class DBISessionTests: XCTestCase {
         session.delegate = delegate
         try await session.run(transport: transport, fileServer: fileServer)
 
-        // "session started" and "session ended" should be .info
-        let startEvent = delegate.logEvents.first(where: { $0.message.contains("session started") })
+        // Session lifecycle messages should be .info.
+        let startEvent = delegate.logEvents.first(where: { $0.message.contains("会话已启动") })
         XCTAssertEqual(startEvent?.level, .info)
 
-        let endEvent = delegate.logEvents.first(where: { $0.message.contains("session ended") })
+        let endEvent = delegate.logEvents.first(where: { $0.message.contains("会话已结束") })
         XCTAssertEqual(endEvent?.level, .info)
 
-        // "Received exit" should be .debug
-        let commandEvent = delegate.logEvents.first(where: { $0.message.contains("Received") })
+        // Received command messages should be .debug.
+        let commandEvent = delegate.logEvents.first(where: { $0.message.contains("已收到") })
         XCTAssertEqual(commandEvent?.level, .debug)
     }
 

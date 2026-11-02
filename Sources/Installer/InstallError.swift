@@ -8,10 +8,10 @@ public enum InstallError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .fileNotFound(let name): "File not found: \(name)"
-        case .fileReadFailed(let name, let error): "Failed to read \(name): \(error.localizedDescription)"
-        case .cancelled: "Installation cancelled"
-        case .connectionLost: "Connection to Switch lost"
+        case .fileNotFound(let name): "找不到文件：\(name)"
+        case .fileReadFailed(let name, let error): "读取 \(name) 失败：\(error.localizedDescription)"
+        case .cancelled: "安装已取消"
+        case .connectionLost: "与 Switch 的连接已断开"
         }
     }
 }

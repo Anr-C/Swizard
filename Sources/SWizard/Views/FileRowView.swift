@@ -33,7 +33,7 @@ struct FileRowView: View {
 
     private var statusText: String {
         if file.isComplete {
-            return "Done"
+            return "完成"
         } else if file.transferredBytes > 0 {
             return "\(Int(file.fraction * 100))% · \(formatBytes(file.transferredBytes))"
         } else {

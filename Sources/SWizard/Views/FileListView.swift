@@ -7,9 +7,9 @@ struct FileListView: View {
     var body: some View {
         if files.isEmpty {
             ContentUnavailableView(
-                "No files queued",
+                "队列中没有文件",
                 systemImage: "tray",
-                description: Text("Drop game files above to get started")
+                description: Text("将游戏文件拖放到上方以开始")
             )
         } else {
             List(files) { file in

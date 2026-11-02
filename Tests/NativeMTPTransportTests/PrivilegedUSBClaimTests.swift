@@ -57,7 +57,7 @@ final class PrivilegedUSBClaimTests: XCTestCase {
 
     func testSeizeRejectedErrorSuggestsReplugging() {
         let error = IOUSBHostError.seizeRejected
-        XCTAssertTrue(error.errorDescription!.contains("replugging"))
+        XCTAssertTrue(error.errorDescription!.contains("重新连接"))
     }
 
     func testClaimFailedIncludesDetail() {

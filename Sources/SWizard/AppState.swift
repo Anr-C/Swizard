@@ -94,11 +94,11 @@ final class AppState {
     var installHelpText: String {
         switch coordinator.transportMode {
         case .dbiBackend:
-            "On your Switch, open DBI and select \"Run DBI backend\" before connecting USB."
+            "在 Switch 上打开 DBI，选择“运行 DBI 后端”，然后连接 USB。"
         case .mtp:
-            "On your Switch, open DBI → \"Run MTP responder\". SWizard will ask for your admin password once to claim USB from macOS."
+            "在 Switch 上打开 DBI →“运行 MTP 响应程序”。SWizard 将提示你输入一次管理员密码，以便从 macOS 接管 USB。"
         case .network:
-            "On your Switch: DBI → Start FTP → Install on SD Card. Enter the IP:port shown on the Switch."
+            "在 Switch 上依次选择：DBI → 启动 FTP → 安装到 SD 卡。然后输入 Switch 屏幕上显示的 IP:端口。"
         }
     }
 
@@ -151,22 +151,22 @@ final class AppState {
     }
 
     private func runMTPDiagnostic() async {
-        logMTP("Starting MTP connection test...", level: .info)
+        logMTP("正在开始 MTP 连接测试……", level: .info)
 
         // Step 1: Scan for device (no admin needed)
         let devices = USBDeviceScanner.findDevices(vendorID: NintendoSwitchUSB.vendorID)
         if devices.isEmpty {
-            logMTP("No Nintendo USB device found", level: .error)
-            mtpTestResult = "FAILED — No Nintendo device found. Is the Switch connected with DBI MTP running?"
+            logMTP("未找到 Nintendo USB 设备", level: .error)
+            mtpTestResult = "失败 — 未找到 Nintendo 设备。请确认 Switch 已连接且 DBI 正在运行 MTP。"
             return
         }
         for d in devices {
-            logMTP("Found: \(d.description)", level: .info)
+            logMTP("已发现设备：\(d.description)", level: .info)
         }
 
         // Step 2: Run a quick MTP handshake test via PrivilegedMTPSession
         // This prompts for admin password, then does DeviceCapture → OpenSession → CloseSession
-        logMTP("Testing MTP handshake (will ask for admin password)...", level: .warning)
+        logMTP("正在测试 MTP 握手（将提示输入管理员密码）……", level: .warning)
 
         let session = mtpSessionFactory()
         do {
@@ -179,12 +179,12 @@ final class AppState {
                     Task { @MainActor in self?.logMTP(msg, level: .debug) }
                 }
             )
-            logMTP("SUCCESS — MTP handshake completed!", level: .info)
-            mtpTestResult = "SUCCESS — MTP access confirmed!"
+            logMTP("成功 — MTP 握手已完成！", level: .info)
+            mtpTestResult = "成功 — 已确认 MTP 访问正常！"
         } catch {
-            logMTP("MTP handshake failed: \(error.localizedDescription)", level: .error)
+            logMTP("MTP 握手失败：\(error.localizedDescription)", level: .error)
             let found = devices.map(\.description).joined(separator: ", ")
-            mtpTestResult = "FAILED — \(found). \(error.localizedDescription)"
+            mtpTestResult = "失败 — \(found)。\(error.localizedDescription)"
         }
     }
 
@@ -226,12 +226,12 @@ final class AppState {
         do {
             let exportedURL = try diagnosticsExportRunner.export(request: request, entries: coordinator.logs)
             if let exportedURL {
-                diagnosticsExportStatusMessage = "Diagnostics exported to \(exportedURL.lastPathComponent)."
+                diagnosticsExportStatusMessage = "诊断日志已导出到 \(exportedURL.lastPathComponent)。"
             } else {
-                diagnosticsExportStatusMessage = "Diagnostics export cancelled."
+                diagnosticsExportStatusMessage = "已取消导出诊断日志。"
             }
         } catch {
-            diagnosticsExportStatusMessage = "Failed to export diagnostics: \(error.localizedDescription)"
+            diagnosticsExportStatusMessage = "导出诊断日志失败：\(error.localizedDescription)"
         }
     }
 
@@ -244,13 +244,13 @@ final class AppState {
         let address = coordinator.ftpAddress.trimmingCharacters(in: .whitespaces)
 
         if address.isEmpty {
-            ftpValidationError = "Enter the IP address shown on your Switch"
+            ftpValidationError = "请输入 Switch 屏幕上显示的 IP 地址"
             ftpAddressValidated = false
             return
         }
 
         guard FTPConnectionInfo.parse(address) != nil else {
-            ftpValidationError = "Invalid format. Use IP:port (e.g., 192.168.0.96:5000)"
+            ftpValidationError = "格式无效。请使用 IP:端口格式（例如 192.168.0.96:5000）"
             ftpAddressValidated = false
             return
         }
@@ -274,7 +274,7 @@ final class AppState {
     var mtpSessionFactory: () -> any MTPSessionProtocol = { PrivilegedMTPSession() }
 
     func testMTPConnection() {
-        mtpTestResult = "Testing..."
+        mtpTestResult = "正在测试……"
         Task {
             await runMTPDiagnostic()
         }

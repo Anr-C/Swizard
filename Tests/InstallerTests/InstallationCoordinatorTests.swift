@@ -53,7 +53,7 @@ final class InstallationCoordinatorTests: XCTestCase {
         let coordinator = InstallationCoordinator(transport: IdleMockTransport())
         coordinator.startInstallation()
 
-        XCTAssertTrue(coordinator.logs.contains(where: { $0.message == "No files queued" }))
+        XCTAssertTrue(coordinator.logs.contains(where: { $0.message == "队列中没有待安装的文件" }))
     }
 
     // MARK: - DBI Backend mode
@@ -105,7 +105,7 @@ final class InstallationCoordinatorTests: XCTestCase {
 
         try? await Task.sleep(for: .seconds(0.5))
 
-        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("admin privileges") }))
+        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("管理员权限") }))
         cleanup(url)
     }
 
@@ -170,7 +170,7 @@ final class InstallationCoordinatorTests: XCTestCase {
 
         try? await Task.sleep(for: .seconds(0.5))
 
-        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("Connecting to Switch (MTP)") }))
+        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("正在通过 MTP 连接 Switch") }))
         cleanup(url)
     }
 
@@ -214,7 +214,7 @@ final class InstallationCoordinatorTests: XCTestCase {
         if case .error = coordinator.state { } else {
             XCTFail("Expected .error for empty FTP address, got \(coordinator.state)")
         }
-        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("Invalid FTP address") }))
+        XCTAssertTrue(coordinator.logs.contains(where: { $0.message.contains("FTP 地址无效") }))
         cleanup(url)
     }
 

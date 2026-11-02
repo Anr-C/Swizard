@@ -22,13 +22,13 @@ public final class DBISession: @unchecked Sendable {
         transport: any TransportProtocol,
         fileServer: any FileServing
     ) async throws {
-        delegate?.sessionDidLog("DBI session started", level: .info)
+        delegate?.sessionDidLog("DBI 会话已启动", level: .info)
 
         while true {
             let headerData = try await transport.read(maxLength: DBIConstants.headerSize)
             let header = try DBIHeader(from: headerData)
 
-            delegate?.sessionDidLog("Received \(header.commandID) (\(header.commandType))", level: .debug)
+            delegate?.sessionDidLog("已收到 \(header.commandID)（\(header.commandType)）", level: .debug)
 
             guard let handler = handlers[header.commandID] else {
                 throw DBIError.unknownCommand(header.commandID.rawValue)
@@ -43,7 +43,7 @@ public final class DBISession: @unchecked Sendable {
 
             if result == .exit {
                 delegate?.sessionDidReceiveExit()
-                delegate?.sessionDidLog("DBI session ended", level: .info)
+                delegate?.sessionDidLog("DBI 会话已结束", level: .info)
                 break
             }
         }

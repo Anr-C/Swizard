@@ -24,6 +24,14 @@ public final class InstallationCoordinator {
         case dbiBackend = "DBI Backend"
         case mtp = "MTP"
         case network = "Network"
+
+        public var displayName: String {
+            switch self {
+            case .dbiBackend: "DBI 后端"
+            case .mtp: "MTP"
+            case .network: "网络"
+            }
+        }
     }
 
     public private(set) var state: State = .idle
@@ -70,13 +78,13 @@ public final class InstallationCoordinator {
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt64) ?? 0
             progress.register(name: url.lastPathComponent, totalBytes: size)
         }
-        log("Queued \(urls.count) file(s)")
+        log("已添加 \(urls.count) 个文件")
     }
 
     public func startInstallation() {
         guard case .idle = state else { return }
         guard fileServer.fileCount > 0 else {
-            log("No files queued")
+            log("队列中没有待安装的文件")
             return
         }
 
@@ -99,7 +107,7 @@ public final class InstallationCoordinator {
         installTask = nil
         // FTP client uses curl Process which is killed when task is cancelled
         networkInfo = nil
-        log("Cancellation requested")
+        log("已请求取消")
     }
 
     public func reset() {
@@ -130,23 +138,23 @@ public final class InstallationCoordinator {
 
     private func runDBIBackendInstallation() async {
         state = .connecting
-        log("Connecting to Switch (DBI Backend)...", level: .info)
+        log("正在通过 DBI 后端连接 Switch……", level: .info)
 
         do {
             try await transport.connect()
             state = .connected
-            log("Connected to Switch", level: .info)
+            log("已连接到 Switch", level: .info)
 
             try await runSessionWithReconnect()
 
             state = .complete
-            log("Installation complete!", level: .info)
+            log("安装完成！", level: .info)
         } catch is CancellationError {
             state = .idle
-            log("Installation cancelled", level: .warning)
+            log("安装已取消", level: .warning)
         } catch {
             state = .error(error.localizedDescription)
-            log("Error: \(error.localizedDescription)", level: .error)
+            log("错误：\(error.localizedDescription)", level: .error)
         }
 
         try? await transport.disconnect()
@@ -167,7 +175,7 @@ public final class InstallationCoordinator {
 
                 reconnectAttempts += 1
                 state = .reconnecting(attempt: reconnectAttempts)
-                log("Connection lost. Reconnecting (\(reconnectAttempts)/\(reconnectPolicy.maxAttempts))...", level: .warning)
+                log("连接已断开，正在重新连接（\(reconnectAttempts)/\(reconnectPolicy.maxAttempts)）……", level: .warning)
 
                 try? await transport.disconnect()
 
@@ -176,7 +184,7 @@ public final class InstallationCoordinator {
                 }
 
                 try await transport.connect()
-                log("Reconnected to Switch", level: .info)
+                log("已重新连接到 Switch", level: .info)
             }
         }
     }
@@ -185,8 +193,8 @@ public final class InstallationCoordinator {
 
     private func runMTPInstallation() async {
         state = .connecting
-        log("Connecting to Switch (MTP)...", level: .info)
-        log("MTP requires admin privileges to claim USB from macOS.", level: .warning)
+        log("正在通过 MTP 连接 Switch……", level: .info)
+        log("MTP 模式需要管理员权限才能从 macOS 接管 USB 设备。", level: .warning)
 
         let files = queuedURLs.map { url -> PrivilegedMTPSession.FileToInstall in
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt64) ?? 0
@@ -213,13 +221,13 @@ public final class InstallationCoordinator {
             )
 
             state = .complete
-            log("Installation complete!", level: .info)
+            log("安装完成！", level: .info)
         } catch is CancellationError {
             state = .idle
-            log("Installation cancelled", level: .warning)
+            log("安装已取消", level: .warning)
         } catch {
             state = .error(error.localizedDescription)
-            log("Error: \(error.localizedDescription)", level: .error)
+            log("错误：\(error.localizedDescription)", level: .error)
         }
     }
 
@@ -229,12 +237,12 @@ public final class InstallationCoordinator {
         state = .connecting
 
         guard let connection = FTPConnectionInfo.parse(ftpAddress) else {
-            state = .error("Invalid FTP address. Enter Switch IP:port (e.g., 192.168.0.96:5000)")
-            log("Invalid FTP address: \(ftpAddress)", level: .error)
+            state = .error("FTP 地址无效。请输入 Switch 的 IP:端口（例如 192.168.0.96:5000）")
+            log("FTP 地址无效：\(ftpAddress)", level: .error)
             return
         }
 
-        log("Connecting to Switch FTP at \(connection.displayString)...", level: .info)
+        log("正在连接 Switch FTP：\(connection.displayString)……", level: .info)
 
         do {
             state = .transferring
@@ -259,17 +267,17 @@ public final class InstallationCoordinator {
                     }
                 )
 
-                log("\(fileName) installed via FTP", level: .info)
+                log("已通过 FTP 安装 \(fileName)", level: .info)
             }
 
             state = .complete
-            log("All files installed via FTP!", level: .info)
+            log("所有文件均已通过 FTP 安装！", level: .info)
         } catch is CancellationError {
             state = .idle
-            log("FTP transfer cancelled", level: .warning)
+            log("FTP 传输已取消", level: .warning)
         } catch {
             state = .error(error.localizedDescription)
-            log("FTP error: \(error.localizedDescription)", level: .error)
+            log("FTP 错误：\(error.localizedDescription)", level: .error)
         }
     }
 

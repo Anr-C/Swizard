@@ -11,13 +11,13 @@ public enum USBError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .deviceNotFound: "Nintendo Switch not found"
-        case .initializationFailed(let code): "USB initialization failed (error: \(code)). Check libusb installation."
-        case .claimFailed(let code): "Failed to claim USB interface (error: \(code))"
-        case .transferFailed(let code): "USB transfer failed (error: \(code))"
-        case .timeout: "USB transfer timed out"
-        case .disconnected: "Switch disconnected"
-        case .notConnected: "Not connected to Switch"
+        case .deviceNotFound: "未找到 Nintendo Switch"
+        case .initializationFailed(let code): "USB 初始化失败（错误代码：\(code)）。请检查 libusb 是否已安装。"
+        case .claimFailed(let code): "无法接管 USB 接口（错误代码：\(code)）"
+        case .transferFailed(let code): "USB 传输失败（错误代码：\(code)）"
+        case .timeout: "USB 传输超时"
+        case .disconnected: "Switch 已断开连接"
+        case .notConnected: "尚未连接到 Switch"
         }
     }
 

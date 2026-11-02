@@ -54,14 +54,14 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
         for file in files {
             let source = URL(fileURLWithPath: file.path)
             let dest = stagingDir.appendingPathComponent(file.name)
-            onLog("Staging \(file.name) for privileged transfer...")
+            onLog("正在准备 \(file.name)，以便进行特权传输……")
             try FileManager.default.copyItem(at: source, to: dest)
             stagedFiles.append(FileToInstall(path: dest.path, name: file.name, size: file.size))
         }
 
         let cSource = Self.buildScript(vendorID: vendorID, productID: productID, files: stagedFiles, targetStorageID: targetStorageID)
 
-        onLog("Requesting admin privileges...")
+        onLog("正在请求管理员权限……")
 
         // Write C source to temp file, compile with cc, then run
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("swizard_mtp_\(UUID().uuidString)")
@@ -170,16 +170,16 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
             if (usb_handle) {
                 libusb_set_auto_detach_kernel_driver(usb_handle, 1);
                 int dr = libusb_detach_kernel_driver(usb_handle, 0);
-                printf("LOG:Kernel driver detach: %d\\n", dr); fflush(stdout);
+                printf("LOG:内核驱动分离结果：%d\\n", dr); fflush(stdout);
                 // Release but keep auto-detach — kernel driver stays detached briefly
                 libusb_close(usb_handle);
             }
             libusb_exit(usb_ctx);
-            printf("LOG:Kernel driver released\\n"); fflush(stdout);
+            printf("LOG:内核驱动已释放\\n"); fflush(stdout);
 
             // Step 2: Now use libmtp while kernel driver is still detached
             LIBMTP_Init();
-            printf("LOG:libmtp initialized\\n"); fflush(stdout);
+            printf("LOG:libmtp 已初始化\\n"); fflush(stdout);
 
             LIBMTP_raw_device_t *rawdevs = NULL;
             int numdevs = 0;
@@ -188,7 +188,7 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
                 printf("ERROR:No MTP devices found after driver detach\\n");
                 return 1;
             }
-            printf("LOG:Found %d MTP device(s)\\n", numdevs); fflush(stdout);
+            printf("LOG:已发现 %d 个 MTP 设备\\n", numdevs); fflush(stdout);
 
             LIBMTP_mtpdevice_t *device = LIBMTP_Open_Raw_Device_Uncached(&rawdevs[0]);
             free(rawdevs);
@@ -196,7 +196,7 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
                 printf("ERROR:Failed to open MTP device\\n");
                 return 1;
             }
-            printf("LOG:Device opened via libmtp\\n"); fflush(stdout);
+            printf("LOG:已通过 libmtp 打开设备\\n"); fflush(stdout);
 
             // Find install storage
             LIBMTP_Get_Storage(device, LIBMTP_STORAGE_SORTBY_NOTSORTED);
@@ -215,13 +215,13 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
                 storage = device->storage;
                 while (storage) {
                     const char *desc = storage->StorageDescription ? storage->StorageDescription : "";
-                    printf("LOG:  Storage %u: %s\\n", storage->id, desc); fflush(stdout);
+                    printf("LOG:  存储空间 %u：%s\\n", storage->id, desc); fflush(stdout);
                     int len = strlen(desc);
                     if (len >= 7) {
                         const char *suffix = desc + len - 7; // "install" = 7 chars
                         if (strcasecmp(suffix, "install") == 0) {
                             install_storage = storage;
-                            printf("LOG:  → Install storage!\\n"); fflush(stdout);
+                            printf("LOG:  → 安装目标存储空间\\n"); fflush(stdout);
                             // Prefer SD over NAND
                             if (strcasestr(desc, "sd") || strcasestr(desc, "SD")) break;
                         }
@@ -235,14 +235,14 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
                 LIBMTP_Release_Device(device);
                 return 1;
             }
-            printf("LOG:Using storage %u: %s\\n", install_storage->id,
+            printf("LOG:正在使用存储空间 %u：%s\\n", install_storage->id,
                    install_storage->StorageDescription ? install_storage->StorageDescription : "?");
             fflush(stdout);
 
             // Send each file
             for (int i = 0; i < file_count; i++) {
                 if (!files[i].path) continue;
-                printf("LOG:Installing %s (%llu bytes)\\n", files[i].name, files[i].size);
+                printf("LOG:正在安装 %s（%llu 字节）\\n", files[i].name, files[i].size);
                 fflush(stdout);
 
                 LIBMTP_file_t *fileMeta = LIBMTP_new_file_t();
@@ -271,7 +271,7 @@ public final class PrivilegedMTPSession: @unchecked Sendable {
                     return 1;
                 }
 
-                printf("LOG:%s installed\\n", files[i].name);
+                printf("LOG:%s 已安装\\n", files[i].name);
                 printf("PROGRESS:%s:%llu:%llu\\n", files[i].name, files[i].size, files[i].size);
                 fflush(stdout);
             }
