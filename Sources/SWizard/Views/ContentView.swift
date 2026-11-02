@@ -14,6 +14,7 @@ struct ContentView: View {
                 .frame(minWidth: 200)
         }
         .frame(minWidth: 600, minHeight: 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             appState.startMonitoring()
         }
@@ -63,12 +64,14 @@ struct ContentView: View {
             Divider()
 
             FileListView(files: appState.coordinator.progress.files)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
 
             InstallBottomBar(appState: appState)
                 .padding()
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     // MARK: - Transport Mode Picker
@@ -268,6 +271,8 @@ struct ContentView: View {
             Divider()
 
             LogView(entries: appState.coordinator.logs)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 }
