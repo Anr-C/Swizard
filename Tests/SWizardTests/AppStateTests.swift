@@ -59,7 +59,7 @@ final class AppStateTests: XCTestCase {
 
         XCTAssertNil(state.mtpTestResult)
         state.testMTPConnection()
-        XCTAssertEqual(state.mtpTestResult, "Testing...")
+        XCTAssertEqual(state.mtpTestResult, "正在测试……")
     }
     // MARK: - Device monitoring adapts to transport mode
 

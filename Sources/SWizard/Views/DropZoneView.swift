@@ -34,10 +34,10 @@ struct DropZoneView: View {
             Image(systemName: "arrow.down.doc")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text("Drop .nsp / .xci files here")
+            Text("将 .nsp / .xci 文件拖放到此处")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Button("or Browse...") { openFilePicker() }
+            Button("或浏览文件……") { openFilePicker() }
                 .buttonStyle(.plain)
                 .font(.caption)
                 .foregroundStyle(Color.accentColor)
@@ -52,7 +52,7 @@ struct DropZoneView: View {
         panel.allowedContentTypes = DropFileFilter.supportedExtensions.compactMap {
             UTType(filenameExtension: $0)
         }
-        panel.message = "Select game files to install"
+        panel.message = "选择要安装的游戏文件"
 
         if panel.runModal() == .OK {
             let urls = panel.urls.filter {

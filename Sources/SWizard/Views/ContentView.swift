@@ -74,12 +74,12 @@ struct ContentView: View {
     // MARK: - Transport Mode Picker
 
     private var transportModePicker: some View {
-        Picker("Mode", selection: Binding(
+        Picker("传输模式", selection: Binding(
             get: { appState.coordinator.transportMode },
             set: { appState.setTransportMode($0) }
         )) {
             ForEach(InstallationCoordinator.TransportMode.allCases, id: \.self) { mode in
-                Text(mode.rawValue).tag(mode)
+                Text(mode.displayName).tag(mode)
             }
         }
         .pickerStyle(.segmented)
@@ -93,7 +93,7 @@ struct ContentView: View {
     private var mtpTestSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Button("Test MTP Connection") {
+                Button("测试 MTP 连接") {
                     appState.testMTPConnection()
                 }
                 .buttonStyle(.bordered)
@@ -102,7 +102,7 @@ struct ContentView: View {
                 if let result = appState.mtpTestResult {
                     Text(result)
                         .font(.caption2)
-                        .foregroundStyle(result.contains("SUCCESS") ? .green : result.contains("Testing") ? .secondary : .red)
+                        .foregroundStyle(result.contains("成功") ? .green : result.contains("正在测试") ? .secondary : .red)
                 }
             }
         }
@@ -119,10 +119,10 @@ struct ContentView: View {
                 .font(.title3)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Admin Password Required")
+                Text("需要管理员密码")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(.orange)
-                Text("macOS requires admin privileges to access USB in MTP mode. You'll be prompted for your password when installing.")
+                Text("macOS 在 MTP 模式下访问 USB 需要管理员权限。开始安装时，系统会提示你输入密码。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -137,7 +137,7 @@ struct ContentView: View {
 
     private var mtpDestinationPicker: some View {
         HStack {
-            Text("Install to:")
+            Text("安装到：")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -145,8 +145,8 @@ struct ContentView: View {
                 get: { appState.coordinator.mtpInstallDestination ?? MTPInstallDestination(storageID: 0, rawName: "SD Card install") },
                 set: { appState.coordinator.mtpInstallDestination = $0 }
             )) {
-                Text("SD Card").tag(MTPInstallDestination(storageID: 0, rawName: "SD Card install"))
-                Text("NAND").tag(MTPInstallDestination(storageID: 0, rawName: "NAND install"))
+                Text("SD 卡").tag(MTPInstallDestination(storageID: 0, rawName: "SD Card install"))
+                Text("主机存储").tag(MTPInstallDestination(storageID: 0, rawName: "NAND install"))
             }
             .pickerStyle(.segmented)
             .frame(width: 180)
@@ -163,7 +163,7 @@ struct ContentView: View {
                 .foregroundStyle(.blue)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Quick setup tip")
+                Text("快速设置提示")
                     .font(.subheadline.weight(.semibold))
                 Text(appState.installHelpText)
                     .font(.caption)
@@ -173,7 +173,7 @@ struct ContentView: View {
 
             Spacer(minLength: 8)
 
-            Button("Dismiss") {
+            Button("关闭") {
                 appState.dismissInstallHelp()
             }
             .buttonStyle(.borderless)
@@ -189,12 +189,12 @@ struct ContentView: View {
                     .foregroundStyle(.blue)
                     .font(.title3)
 
-                Text("Switch FTP Address")
+                Text("Switch FTP 地址")
                     .font(.subheadline.weight(.semibold))
             }
 
             HStack(spacing: 8) {
-                TextField("Enter Switch IP (e.g., 192.168.0.96:5000)", text: Binding(
+                TextField("输入 Switch IP（例如 192.168.0.96:5000）", text: Binding(
                     get: { appState.coordinator.ftpAddress },
                     set: { appState.coordinator.ftpAddress = $0 }
                 ))
@@ -204,7 +204,7 @@ struct ContentView: View {
                     appState.validateFTPAddress()
                 }
 
-                Button("Connect") {
+                Button("连接") {
                     appState.validateFTPAddress()
                 }
                 .buttonStyle(.bordered)
@@ -216,7 +216,7 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             } else if appState.isDeviceConnected && appState.coordinator.transportMode == .network {
-                Label("Ready to install via FTP", systemImage: "checkmark.circle.fill")
+                Label("FTP 已就绪，可以开始安装", systemImage: "checkmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.green)
             }
@@ -230,7 +230,7 @@ struct ContentView: View {
     private var rightPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Activity Log")
+                Text("活动日志")
                     .font(.headline)
 
                 Spacer()
@@ -242,7 +242,7 @@ struct ContentView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .help("Export diagnostics log file")
+                .help("导出诊断日志文件")
 
                 Button {
                     appState.copyLogsToClipboard()
@@ -251,7 +251,7 @@ struct ContentView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .help("Copy logs to clipboard")
+                .help("复制日志到剪贴板")
                 .disabled(appState.coordinator.logs.isEmpty)
             }
             .padding(.horizontal)

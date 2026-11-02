@@ -72,8 +72,8 @@ public enum MTPContainerError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .tooShort(let size): "MTP container too short: \(size) bytes (need \(MTPContainer.headerSize))"
-        case .invalidContainerType(let type): "Invalid MTP container type: 0x\(String(type, radix: 16))"
+        case .tooShort(let size): "MTP 容器过短：\(size) 字节（至少需要 \(MTPContainer.headerSize) 字节）"
+        case .invalidContainerType(let type): "MTP 容器类型无效：0x\(String(type, radix: 16))"
         }
     }
 }

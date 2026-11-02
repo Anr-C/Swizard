@@ -11,17 +11,17 @@ public enum DBIError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalidMagic(let data):
-            "Invalid magic bytes: \(data.map { String(format: "%02X", $0) }.joined())"
+            "魔数无效：\(data.map { String(format: "%02X", $0) }.joined())"
         case .invalidHeaderSize(let size):
-            "Invalid header size: \(size) bytes (expected \(DBIConstants.headerSize))"
+            "头部大小无效：\(size) 字节（预期 \(DBIConstants.headerSize) 字节）"
         case .unknownCommand(let id):
-            "Unknown DBI command: \(id)"
+            "未知的 DBI 命令：\(id)"
         case .unknownCommandType(let type):
-            "Unknown DBI command type: \(type)"
+            "未知的 DBI 命令类型：\(type)"
         case .invalidPayloadSize(let size):
-            "Invalid payload size: \(size) bytes"
+            "数据载荷大小无效：\(size) 字节"
         case .fileNameDecodingFailed:
-            "Failed to decode file name as UTF-8"
+            "无法将文件名解码为 UTF-8"
         }
     }
 }

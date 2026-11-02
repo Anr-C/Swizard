@@ -30,8 +30,8 @@ public final class FTPUploadClient: FTPUploadClientProtocol, @unchecked Sendable
     ) async throws {
         let args = buildCurlArguments(file: file, connection: connection)
         let ftpURL = connection.uploadURL(for: file.lastPathComponent)
-        onLog("Uploading \(file.lastPathComponent) to \(connection.displayString)...")
-        onLog("curl URL: \(ftpURL)")
+        onLog("正在上传 \(file.lastPathComponent) 到 \(connection.displayString)……")
+        onLog("curl 地址：\(ftpURL)")
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
@@ -84,11 +84,11 @@ public final class FTPUploadClient: FTPUploadClientProtocol, @unchecked Sendable
             // Log the full stderr for debugging
             let stderrSummary = allStderr.trimmingCharacters(in: .whitespacesAndNewlines)
             if !stderrSummary.isEmpty {
-                onLog("curl stderr: \(stderrSummary.prefix(500))")
+                onLog("curl 错误输出：\(stderrSummary.prefix(500))")
             }
             throw FTPUploadError.transferFailed("curl exited with code \(process.terminationStatus)")
         }
 
-        onLog("\(file.lastPathComponent) uploaded successfully")
+        onLog("\(file.lastPathComponent) 已上传")
     }
 }

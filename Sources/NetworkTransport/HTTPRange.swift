@@ -45,9 +45,9 @@ public enum HTTPParseError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidRangeFormat(let v): "Invalid range format: \(v)"
-        case .invalidRequestFormat: "Invalid HTTP request format"
-        case .emptyRequest: "Empty HTTP request"
+        case .invalidRangeFormat(let v): "范围格式无效：\(v)"
+        case .invalidRequestFormat: "HTTP 请求格式无效"
+        case .emptyRequest: "HTTP 请求为空"
         }
     }
 }

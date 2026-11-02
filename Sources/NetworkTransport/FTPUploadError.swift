@@ -8,10 +8,10 @@ public enum FTPUploadError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .connectionFailed(let d): "FTP connection failed: \(d)"
-        case .transferFailed(let d): "FTP transfer failed: \(d)"
-        case .cancelled: "FTP transfer cancelled"
-        case .invalidFile(let d): "Invalid file: \(d)"
+        case .connectionFailed(let d): "FTP 连接失败：\(d)"
+        case .transferFailed(let d): "FTP 传输失败：\(d)"
+        case .cancelled: "FTP 传输已取消"
+        case .invalidFile(let d): "文件无效：\(d)"
         }
     }
 }

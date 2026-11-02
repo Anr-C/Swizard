@@ -11,12 +11,12 @@ public enum IOUSBHostError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .deviceNotFound: "Nintendo Switch not found via IOUSBHost"
-        case .openFailed(let d): "Failed to open USB device: \(d)"
-        case .claimFailed(let d): "Failed to claim USB interface: \(d)"
-        case .readFailed(let d): "USB read failed: \(d)"
-        case .writeFailed(let d): "USB write failed: \(d)"
-        case .seizeRejected: "macOS refused to release the USB device. Try unplugging and replugging the Switch."
+        case .deviceNotFound: "通过 IOUSBHost 未找到 Nintendo Switch"
+        case .openFailed(let d): "无法打开 USB 设备：\(d)"
+        case .claimFailed(let d): "无法接管 USB 接口：\(d)"
+        case .readFailed(let d): "USB 读取失败：\(d)"
+        case .writeFailed(let d): "USB 写入失败：\(d)"
+        case .seizeRejected: "macOS 拒绝释放 USB 设备。请拔下 Switch 后重新连接。"
         }
     }
 }

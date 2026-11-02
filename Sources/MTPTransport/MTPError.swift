@@ -11,13 +11,13 @@ public enum MTPError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .deviceNotFound: "No MTP device found"
-        case .connectionFailed(let detail): "MTP connection failed: \(detail)"
-        case .storageNotFound: "No storage found on device"
-        case .installFolderNotFound(let name): "Install folder '\(name)' not found on device"
-        case .transferFailed(let detail): "MTP transfer failed: \(detail)"
-        case .cancelled: "Transfer cancelled"
-        case .noStorage: "Device has no storage"
+        case .deviceNotFound: "未找到 MTP 设备"
+        case .connectionFailed(let detail): "MTP 连接失败：\(detail)"
+        case .storageNotFound: "设备上没有可用存储空间"
+        case .installFolderNotFound(let name): "设备上找不到安装目录“\(name)”"
+        case .transferFailed(let detail): "MTP 传输失败：\(detail)"
+        case .cancelled: "传输已取消"
+        case .noStorage: "设备没有存储空间"
         }
     }
 

@@ -11,19 +11,19 @@ struct InstallButtonView: View {
     var body: some View {
         switch state {
         case .idle:
-            Button("Install", action: onInstall)
+            Button("安装", action: onInstall)
                 .buttonStyle(.borderedProminent)
                 .disabled(isDisabled)
 
         case .connecting:
-            busy("Connecting...")
+            busy("正在连接……")
 
         case .connected:
             busy("Connected, waiting...")
 
         case .waitingForSwitch:
             HStack(spacing: 8) {
-                busy("Choose the game on your Switch")
+                busy("请在 Switch 上选择游戏")
                 cancelButton
             }
 
@@ -36,13 +36,13 @@ struct InstallButtonView: View {
 
         case .reconnecting(let attempt):
             HStack(spacing: 8) {
-                busy("Reconnecting (\(attempt))...")
+                busy("正在重新连接（\(attempt)）……")
                     .foregroundStyle(.orange)
                 cancelButton
             }
 
         case .complete:
-            Label("Complete!", systemImage: "checkmark.circle.fill")
+            Label("安装完成！", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
 
         case .error:
@@ -61,7 +61,7 @@ struct InstallButtonView: View {
     }
 
     private var cancelButton: some View {
-        Button("Cancel", action: onCancel)
+        Button("取消", action: onCancel)
             .buttonStyle(.plain)
             .foregroundStyle(.red)
             .fixedSize()

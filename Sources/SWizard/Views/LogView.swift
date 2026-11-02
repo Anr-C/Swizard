@@ -21,11 +21,11 @@ struct LogView: View {
     // MARK: - Filter Bar
 
     private var levelFilterBar: some View {
-        Picker("Level", selection: $minimumLevel) {
-            Text("All").tag(LogLevel.debug)
-            Text("Info").tag(LogLevel.info)
-            Text("Warn").tag(LogLevel.warning)
-            Text("Error").tag(LogLevel.error)
+        Picker("日志级别", selection: $minimumLevel) {
+            Text("全部").tag(LogLevel.debug)
+            Text("信息").tag(LogLevel.info)
+            Text("警告").tag(LogLevel.warning)
+            Text("错误").tag(LogLevel.error)
         }
         .pickerStyle(.segmented)
         .padding(.horizontal, 8)

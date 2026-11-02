@@ -21,9 +21,9 @@ struct ConnectionStatusView: View {
 
     private var statusText: String {
         if isConnected {
-            "Switch Connected (\(mode.rawValue))"
+            "已连接到 Switch（\(mode.displayName)）"
         } else {
-            "Waiting for Switch..."
+            "等待 Switch 连接……"
         }
     }
 }

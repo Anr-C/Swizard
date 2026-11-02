@@ -81,7 +81,7 @@ struct SavePanelDiagnosticsExporter: DiagnosticsExporting {
     @MainActor
     func export(report: String, suggestedFileName: String) throws -> URL? {
         let panel = NSSavePanel()
-        panel.title = "Export Diagnostics"
+        panel.title = "导出诊断日志"
         panel.nameFieldStringValue = suggestedFileName
         panel.allowedContentTypes = [.plainText]
         panel.canCreateDirectories = true
