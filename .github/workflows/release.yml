@@ -95,6 +95,7 @@ jobs:
           rm -rf "$APP_DIR"
           mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
           cp "$BIN_PATH/SWizard" "$MACOS_DIR/SWizard"
+          cp "$BIN_PATH/SWizard_RCMTransport.bundle/intermezzo.bin" "$RESOURCES_DIR/intermezzo.bin"
           chmod +x "$MACOS_DIR/SWizard"
 
           if [[ -f "$ICON_SOURCE" ]]; then

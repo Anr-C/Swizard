@@ -24,12 +24,14 @@ public final class InstallationCoordinator {
         case dbiBackend = "DBI Backend"
         case mtp = "MTP"
         case network = "Network"
+        case rcm = "RCM"
 
         public var displayName: String {
             switch self {
             case .dbiBackend: "DBI 后端"
             case .mtp: "MTP"
             case .network: "网络"
+            case .rcm: "RCM 注入"
             }
         }
     }
@@ -83,6 +85,7 @@ public final class InstallationCoordinator {
 
     public func startInstallation() {
         guard case .idle = state else { return }
+        guard transportMode != .rcm else { return }
         guard fileServer.fileCount > 0 else {
             log("队列中没有待安装的文件")
             return
@@ -131,6 +134,8 @@ public final class InstallationCoordinator {
             await runMTPInstallation()
         case .network:
             await runNetworkInstallation()
+        case .rcm:
+            break
         }
         installTask = nil
     }

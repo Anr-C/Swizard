@@ -16,7 +16,7 @@ The most complete and reliable macOS app for installing Nintendo Switch games �
 
 ## Why
 
-macOS Tahoe on Apple Silicon breaks MTP connections, making OpenMTP and Android File Transfer unreliable or non-functional. SWizard solves this with three different transport modes — at least one will work regardless of your setup.
+macOS Tahoe on Apple Silicon breaks MTP connections, making OpenMTP and Android File Transfer unreliable or non-functional. SWizard provides three game-installation modes and an RCM mode.
 
 ## Transport Modes
 
@@ -39,6 +39,11 @@ macOS Tahoe on Apple Silicon breaks MTP connections, making OpenMTP and Android 
 - No USB cable needed — works over WiFi
 - Remembers last FTP address across sessions
 
+### RCM
+- Detects a Switch in RCM mode by USB VID `0x0955` and PID `0x7321`
+- Lets you select or drop a `.bin` payload and remembers its path
+- The Inject button uses CrystalRCM's legacy IOKit `ReadPipeTO`, `WritePipeTO`, and `DeviceRequestTO` sequence, with the bundled intermezzo
+
 ## Features
 
 - **Drag-and-drop** `.nsp`, `.nsz`, `.xci`, `.xcz` files
@@ -49,8 +54,8 @@ macOS Tahoe on Apple Silicon breaks MTP connections, making OpenMTP and Android 
 - **Session reconnect** — DBI Backend mode recovers from cable disconnects
 - **Structured logging** — debug/info/warning/error levels with color-coding and filtering
 - **Copy logs** — clipboard button for easy debugging
-- **Persistent settings** — remembers transport mode and FTP address
-- **Auto device detection** — shows connection status per mode (USB scan or FTP address validation)
+- **Persistent settings** — remembers transport mode, FTP address, and selected RCM payload path
+- **Auto device detection** — shows connection status per mode, including RCM VID/PID detection
 
 ## Architecture
 
@@ -104,6 +109,8 @@ If you cloned this repo and want a normal `.app` you can double-click:
 2. Open SWizard from Applications/Finder
 
 If you only want to build without installing, run `scripts/build-app.sh`.
+
+The RCM `intermezzo.bin` is placed directly in the app's `Contents/Resources`.
 
 To regenerate the app icon asset used by the bundle, run `scripts/generate-icon.sh`.
 
@@ -206,6 +213,8 @@ Sources/
 ├── DBIProtocol/          # DBI0 protocol: headers, commands, session state machine
 ├── MTPTransport/         # MTP device protocol, value objects
 ├── NativeMTPTransport/   # IOUSBHost adapter, privileged MTP session, USB scanner
+├── CRCMLegacy/           # C bridge to legacy IOKit DeviceRequestTO
+├── RCMTransport/         # RCM device identifiers, payload builder and USB transfers
 ├── NetworkTransport/     # FTP upload client, curl progress parser, HTTP server
 ├── Installer/            # Coordinator, file server, progress, speed calculator
 └── SWizard/              # SwiftUI app: split panel, drop zone, log view
@@ -214,3 +223,7 @@ Sources/
 ## License
 
 MIT
+
+The RCM injector flow and `intermezzo.bin` are adapted from CrystalRCM,
+which is distributed under GPLv3. See `LICENSE-CrystalRCM.txt` before
+redistributing a build that includes the RCM injector.

@@ -6,6 +6,7 @@ import USBTransport
 import NativeMTPTransport
 import NetworkTransport
 import DBIProtocol
+import RCMTransport
 
 protocol PreferencesStore {
     func bool(forKey defaultName: String) -> Bool
@@ -24,19 +25,33 @@ extension UserDefaults: PreferencesStore {
 @Observable
 @MainActor
 final class AppState {
+    enum RCMInjectionState: Equatable {
+        case idle
+        case injecting
+        case requestFinished
+        case unconfirmed(String)
+        case failed(String)
+    }
+
     private static let installHelpDismissedKey = "swizard.installHelp.dismissed"
     private static let lastFTPAddressKey = "swizard.ftp.lastAddress"
     private static let lastTransportModeKey = "swizard.transportMode"
+    private static let lastRCMPayloadPathKey = "swizard.rcm.lastPayloadPath"
 
     let coordinator = InstallationCoordinator()
     let deviceMonitor: USBDeviceMonitor
     var isDeviceConnected = false
+    var rcmPayloadURL: URL?
+    var rcmPayloadSelectionError: String?
+    private(set) var rcmInjectionState: RCMInjectionState = .idle
     var showInstallHelp: Bool
     var diagnosticsExportStatusMessage: String?
     private var monitorTask: Task<Void, Never>?
     private let preferences: PreferencesStore
     private let appVersionProvider: any AppVersionProviding
     private let diagnosticsExportRunner: any DiagnosticsExportRunning
+    private let rcmDeviceDetector: @Sendable () -> Bool
+    private let rcmInjector: (any RCMInjector)?
 
     /// Shared flag for device mutex — set by coordinator state changes.
     private let _isTransferActive = TransferActiveFlag()
@@ -44,11 +59,17 @@ final class AppState {
     init(
         preferences: PreferencesStore = UserDefaults.standard,
         appVersionProvider: any AppVersionProviding = DefaultAppVersionProvider(),
-        diagnosticsExportRunner: (any DiagnosticsExportRunning)? = nil
+        diagnosticsExportRunner: (any DiagnosticsExportRunning)? = nil,
+        rcmInjector: (any RCMInjector)? = nil,
+        rcmDeviceDetector: @escaping @Sendable () -> Bool = {
+            USBDeviceScanner.hasDevice(vendorID: RCMDevice.vendorID, productID: RCMDevice.productID)
+        }
     ) {
         let flag = _isTransferActive
         self.preferences = preferences
         self.appVersionProvider = appVersionProvider
+        self.rcmInjector = rcmInjector
+        self.rcmDeviceDetector = rcmDeviceDetector
         if let diagnosticsExportRunner {
             self.diagnosticsExportRunner = diagnosticsExportRunner
         } else {
@@ -63,6 +84,14 @@ final class AppState {
         // Restore last FTP address
         if let lastAddress = preferences.string(forKey: Self.lastFTPAddressKey) {
             coordinator.ftpAddress = lastAddress
+        }
+
+        if let lastPayloadPath = preferences.string(forKey: Self.lastRCMPayloadPathKey) {
+            let lastPayloadURL = URL(fileURLWithPath: lastPayloadPath)
+            rcmPayloadURL = lastPayloadURL
+            if !FileManager.default.fileExists(atPath: lastPayloadURL.path) {
+                rcmPayloadSelectionError = "上次选择的 payload 文件不存在，请重新选择。"
+            }
         }
 
         // Restore last transport mode
@@ -99,6 +128,8 @@ final class AppState {
             "在 Switch 上打开 DBI →“运行 MTP 响应程序”。SWizard 将提示你输入一次管理员密码，以便从 macOS 接管 USB。"
         case .network:
             "在 Switch 上依次选择：DBI → 启动 FTP → 安装到 SD 卡。然后输入 Switch 屏幕上显示的 IP:端口。"
+        case .rcm:
+            "选择或拖入 .bin payload 文件。"
         }
     }
 
@@ -107,9 +138,11 @@ final class AppState {
         monitorTask = Task {
             // Poll for device based on current transport mode
             var wasConnected = false
+            var previousMode: InstallationCoordinator.TransportMode?
             while !Task.isCancelled {
                 let found: Bool
-                switch coordinator.transportMode {
+                let mode = coordinator.transportMode
+                switch mode {
                 case .dbiBackend:
                     // Use USBDeviceMonitor's underlying check (libusb, PID 0x3000)
                     found = USBDeviceScanner.findDevice(
@@ -125,12 +158,23 @@ final class AppState {
                 case .network:
                     // Network mode: "connected" when user validated FTP address
                     found = ftpAddressValidated
+                case .rcm:
+                    found = rcmDeviceDetector()
                 }
 
-                if found != wasConnected {
+                if found != wasConnected || mode != previousMode {
                     isDeviceConnected = found
                     wasConnected = found
+                    if mode == .rcm {
+                        coordinator.log(
+                            found
+                                ? "已检测到 RCM 设备（VID 0x0955，PID 0x7321）"
+                                : "未检测到 RCM 设备",
+                            level: found ? .info : .warning
+                        )
+                    }
                 }
+                previousMode = mode
 
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -264,6 +308,84 @@ final class AppState {
     func setTransportMode(_ mode: InstallationCoordinator.TransportMode) {
         coordinator.transportMode = mode
         preferences.setString(mode.rawValue, forKey: Self.lastTransportModeKey)
+    }
+
+    func selectRCMPayload(_ url: URL) {
+        guard url.isFileURL,
+              url.pathExtension.lowercased() == "bin" else {
+            rcmPayloadSelectionError = "请选择 .bin 格式的 payload 文件。"
+            coordinator.log("RCM payload 文件格式无效：\(url.lastPathComponent)", level: .error)
+            return
+        }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+              !isDirectory.boolValue else {
+            rcmPayloadSelectionError = "所选 payload 文件不存在或不是普通文件。"
+            coordinator.log("RCM payload 文件不可用：\(url.path)", level: .error)
+            return
+        }
+
+        let standardizedURL = url.standardizedFileURL
+        rcmPayloadURL = standardizedURL
+        rcmPayloadSelectionError = nil
+        rcmInjectionState = .idle
+        preferences.setString(standardizedURL.path, forKey: Self.lastRCMPayloadPathKey)
+        coordinator.log("已选择 RCM payload：\(standardizedURL.lastPathComponent)", level: .info)
+    }
+
+    var isRCMInjectionInProgress: Bool {
+        if case .injecting = rcmInjectionState { return true }
+        return false
+    }
+
+    func injectRCMPayload() async {
+        guard coordinator.transportMode == .rcm else {
+            failRCMInjection("请先切换到 RCM 模式。")
+            return
+        }
+        guard !isRCMInjectionInProgress else { return }
+        guard rcmDeviceDetector() else {
+            isDeviceConnected = false
+            failRCMInjection("未检测到 RCM 设备，请检查连接后重试。")
+            return
+        }
+        guard let payloadURL = rcmPayloadURL,
+              payloadURL.isFileURL,
+              payloadURL.pathExtension.lowercased() == "bin" else {
+            failRCMInjection("请先选择有效的 .bin payload 文件。")
+            return
+        }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: payloadURL.path, isDirectory: &isDirectory),
+              !isDirectory.boolValue else {
+            rcmPayloadSelectionError = "所选 payload 文件不存在或不是普通文件。"
+            failRCMInjection("payload 文件不可用，请重新选择。")
+            return
+        }
+
+        isDeviceConnected = true
+        rcmInjectionState = .injecting
+        coordinator.log("正在将 payload 交给 RCM 注入器：\(payloadURL.lastPathComponent)", level: .info)
+
+        do {
+            let injector = rcmInjector ?? FuseeGeleeInjector()
+            try await injector.inject(payloadAt: payloadURL)
+            rcmInjectionState = .requestFinished
+            coordinator.log("RCM 注入完成（设备已停止响应，属正常现象）。请在 Switch 上确认是否启动。", level: .info)
+        } catch let RCMInjectionError.triggerUnconfirmed(reason) {
+            let message = "payload 已发送，但触发请求\(reason)；请在设备上确认是否启动。"
+            rcmInjectionState = .unconfirmed(message)
+            coordinator.log("RCM 注入状态未确认：\(message)", level: .warning)
+        } catch {
+            failRCMInjection(error.localizedDescription)
+        }
+    }
+
+    private func failRCMInjection(_ message: String) {
+        rcmInjectionState = .failed(message)
+        coordinator.log("RCM 注入失败：\(message)", level: .error)
     }
 
     // MARK: - MTP Connection Test

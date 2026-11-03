@@ -8,7 +8,7 @@ struct ContentView: View {
     /// USB modes require a connected device; Network mode doesn't.
     private var installRequiresDevice: Bool {
         switch appState.coordinator.transportMode {
-        case .dbiBackend, .mtp:
+        case .dbiBackend, .mtp, .rcm:
             return !appState.isDeviceConnected
         case .network:
             return false
@@ -65,16 +65,29 @@ struct ContentView: View {
 
             Divider()
 
-            DropZoneView { urls in
-                appState.coordinator.queueFiles(urls)
+            if appState.coordinator.transportMode == .rcm {
+                RCMPayloadPickerView(
+                    selectedURL: appState.rcmPayloadURL,
+                    selectionError: appState.rcmPayloadSelectionError,
+                    onSelect: { appState.selectRCMPayload($0) }
+                )
+                rcmInjectionStatus
+            } else {
+                DropZoneView { urls in
+                    appState.coordinator.queueFiles(urls)
+                }
+                .frame(height: 120)
+                .padding()
             }
-            .frame(height: 120)
-            .padding()
 
             Divider()
 
-            FileListView(files: appState.coordinator.progress.files)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if appState.coordinator.transportMode == .rcm {
+                Spacer(minLength: 0)
+            } else {
+                FileListView(files: appState.coordinator.progress.files)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
 
             Divider()
 
@@ -98,7 +111,7 @@ struct ContentView: View {
         .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .disabled(appState.isTransferActive)
+        .disabled(appState.isTransferActive || appState.isRCMInjectionInProgress)
     }
 
     // MARK: - MTP Test
@@ -298,7 +311,8 @@ struct ContentView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
-            if !appState.coordinator.progress.files.isEmpty {
+            if appState.coordinator.transportMode != .rcm,
+               !appState.coordinator.progress.files.isEmpty {
                 Button("清空队列") {
                     appState.coordinator.reset()
                 }
@@ -308,13 +322,55 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
     private var installButton: some View {
-        InstallButtonView(
-            state: appState.coordinator.state,
-            progress: appState.coordinator.progress,
-            isDisabled: appState.coordinator.progress.files.isEmpty || installRequiresDevice,
-            onInstall: { appState.coordinator.startInstallation() },
-            onCancel: { appState.coordinator.cancel() }
-        )
+        if appState.coordinator.transportMode == .rcm {
+            Button(appState.isRCMInjectionInProgress ? "注入中……" : "注入") {
+                Task {
+                    await appState.injectRCMPayload()
+                }
+            }
+                .buttonStyle(.borderedProminent)
+                .disabled(
+                    !appState.isDeviceConnected
+                        || appState.rcmPayloadURL == nil
+                        || appState.isRCMInjectionInProgress
+                )
+        } else {
+            InstallButtonView(
+                state: appState.coordinator.state,
+                progress: appState.coordinator.progress,
+                isDisabled: appState.coordinator.progress.files.isEmpty || installRequiresDevice,
+                onInstall: { appState.coordinator.startInstallation() },
+                onCancel: { appState.coordinator.cancel() }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var rcmInjectionStatus: some View {
+        switch appState.rcmInjectionState {
+        case .idle:
+            EmptyView()
+        case .injecting:
+            ProgressView("正在调用 RCM 注入器……")
+                .font(.caption)
+                .padding(.horizontal)
+        case .requestFinished:
+            Label("注入请求已结束；请在设备上确认是否启动。", systemImage: "info.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+        case .unconfirmed(let message):
+            Label(message, systemImage: "questionmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .padding(.horizontal)
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .padding(.horizontal)
+        }
     }
 }

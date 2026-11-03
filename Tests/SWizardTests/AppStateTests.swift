@@ -2,6 +2,7 @@ import XCTest
 @testable import SWizard
 @testable import NativeMTPTransport
 import Installer
+import RCMTransport
 
 @MainActor
 final class AppStateTests: XCTestCase {
@@ -218,6 +219,116 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(state.coordinator.transportMode, .dbiBackend)
     }
 
+    func testRCMPayloadPathPersistsAndRestores() throws {
+        let store = InMemoryPreferencesStore()
+        let payloadURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("bin")
+        try Data([0x01]).write(to: payloadURL)
+        defer { try? FileManager.default.removeItem(at: payloadURL) }
+
+        let firstState = AppState(preferences: store)
+        firstState.selectRCMPayload(payloadURL)
+
+        XCTAssertEqual(store.string(forKey: "swizard.rcm.lastPayloadPath"), payloadURL.path)
+
+        let secondState = AppState(preferences: store)
+        XCTAssertEqual(secondState.rcmPayloadURL?.path, payloadURL.path)
+        XCTAssertNil(secondState.rcmPayloadSelectionError)
+    }
+
+    func testRCMModeDetectsDeviceUsingInjectedDetector() async {
+        let state = AppState(preferences: InMemoryPreferencesStore(), rcmDeviceDetector: { true })
+        state.coordinator.transportMode = .rcm
+
+        state.startMonitoring()
+        try? await Task.sleep(for: .milliseconds(1100))
+
+        XCTAssertTrue(state.isDeviceConnected)
+        XCTAssertTrue(state.coordinator.logs.contains {
+            $0.message.contains("VID 0x0955") && $0.message.contains("PID 0x7321")
+        })
+        state.stopMonitoring()
+    }
+
+    func testRCMModeShowsMissingDeviceWhenDetectorReturnsFalse() async {
+        let state = AppState(preferences: InMemoryPreferencesStore(), rcmDeviceDetector: { false })
+        state.coordinator.transportMode = .rcm
+
+        state.startMonitoring()
+        try? await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertFalse(state.isDeviceConnected)
+        XCTAssertTrue(state.coordinator.logs.contains { $0.message == "未检测到 RCM 设备" })
+        state.stopMonitoring()
+    }
+
+    func testRCMInjectionCallsInjectorAndReportsRequestFinished() async throws {
+        let payloadURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("bin")
+        try Data([0x01]).write(to: payloadURL)
+        defer { try? FileManager.default.removeItem(at: payloadURL) }
+        let injector = RecordingRCMInjector()
+        let state = AppState(
+            preferences: InMemoryPreferencesStore(),
+            rcmInjector: injector,
+            rcmDeviceDetector: { true }
+        )
+        state.coordinator.transportMode = .rcm
+        state.selectRCMPayload(payloadURL)
+
+        await state.injectRCMPayload()
+
+        let receivedPayloadURL = await injector.receivedPayloadURL()
+        XCTAssertEqual(receivedPayloadURL, payloadURL)
+        XCTAssertEqual(state.rcmInjectionState, .requestFinished)
+        XCTAssertTrue(state.coordinator.logs.contains {
+            $0.message.contains("请在 Switch 上确认是否启动")
+        })
+    }
+
+    func testRCMInjectionWithoutDeviceDoesNotCallInjector() async throws {
+        let payloadURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("bin")
+        try Data([0x01]).write(to: payloadURL)
+        defer { try? FileManager.default.removeItem(at: payloadURL) }
+        let injector = RecordingRCMInjector()
+        let state = AppState(
+            preferences: InMemoryPreferencesStore(),
+            rcmInjector: injector,
+            rcmDeviceDetector: { false }
+        )
+        state.coordinator.transportMode = .rcm
+        state.selectRCMPayload(payloadURL)
+
+        await state.injectRCMPayload()
+
+        let receivedPayloadURL = await injector.receivedPayloadURL()
+        XCTAssertNil(receivedPayloadURL)
+        XCTAssertEqual(state.rcmInjectionState, .failed("未检测到 RCM 设备，请检查连接后重试。"))
+    }
+
+    func testTriggerTimeoutShowsUnconfirmedState() async throws {
+        let payloadURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathExtension("bin")
+        try Data([0x01]).write(to: payloadURL)
+        defer { try? FileManager.default.removeItem(at: payloadURL) }
+        let state = AppState(
+            preferences: InMemoryPreferencesStore(),
+            rcmInjector: TimeoutRCMInjector(),
+            rcmDeviceDetector: { true }
+        )
+        state.coordinator.transportMode = .rcm
+        state.selectRCMPayload(payloadURL)
+        await state.injectRCMPayload()
+        guard case .unconfirmed(let message) = state.rcmInjectionState else {
+            return XCTFail("Timeout should leave device state unconfirmed")
+        }
+        XCTAssertTrue(message.contains("超时"))
+    }
+
     func testDefaultTransportModeIsMTP() {
         let store = InMemoryPreferencesStore()
         // No saved preference
@@ -357,5 +468,21 @@ private final class SpyDiagnosticsExportRunner: DiagnosticsExportRunning {
     func export(request: DiagnosticsExportRequest, entries: [Installer.LogEntry]) throws -> URL? {
         receivedRequest = request
         return nil
+    }
+}
+
+private actor RecordingRCMInjector: RCMInjector {
+    private var payloadURL: URL?
+
+    func inject(payloadAt url: URL) async throws {
+        payloadURL = url
+    }
+
+    func receivedPayloadURL() -> URL? { payloadURL }
+}
+
+private struct TimeoutRCMInjector: RCMInjector {
+    func inject(payloadAt url: URL) async throws {
+        throw RCMInjectionError.triggerUnconfirmed("超时")
     }
 }

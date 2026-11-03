@@ -26,6 +26,30 @@ public enum USBDeviceScanner {
         findAllDevices().first { $0.vendorID == vendorID && $0.productID == productID }
     }
 
+    /// Check for a VID + PID without retaining the matching IOKit service.
+    public static func hasDevice(vendorID: UInt16, productID: UInt16) -> Bool {
+        guard let matching = IOServiceMatching("IOUSBHostDevice") else { return false }
+
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator) == KERN_SUCCESS else {
+            return false
+        }
+        defer { IOObjectRelease(iterator) }
+
+        while true {
+            let service = IOIteratorNext(iterator)
+            guard service != 0 else { return false }
+
+            let matches = registryInt(service: service, key: "idVendor") == Int(vendorID)
+                && registryInt(service: service, key: "idProduct") == Int(productID)
+            IOObjectRelease(service)
+
+            if matches {
+                return true
+            }
+        }
+    }
+
     /// Find all connected USB host devices.
     public static func findAllDevices() -> [USBDeviceInfo] {
         guard let matching = IOServiceMatching("IOUSBHostDevice") else { return [] }

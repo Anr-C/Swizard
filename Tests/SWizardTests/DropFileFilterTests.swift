@@ -41,4 +41,20 @@ final class DropFileFilterTests: XCTestCase {
 
         XCTAssertNil(resolved)
     }
+
+    func testRCMPayloadFilterAcceptsBinExtension() {
+        let url = URL(fileURLWithPath: "/tmp/payload.BIN")
+
+        let resolved = RCMPayloadFileFilter.resolveSupportedURL(fromFileURLData: url.dataRepresentation)
+
+        XCTAssertEqual(resolved, url)
+    }
+
+    func testRCMPayloadFilterRejectsOtherExtensions() {
+        let url = URL(fileURLWithPath: "/tmp/game.nsp")
+
+        let resolved = RCMPayloadFileFilter.resolveSupportedURL(fromFileURLData: url.dataRepresentation)
+
+        XCTAssertNil(resolved)
+    }
 }

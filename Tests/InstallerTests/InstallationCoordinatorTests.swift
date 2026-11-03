@@ -85,6 +85,17 @@ final class InstallationCoordinatorTests: XCTestCase {
         XCTAssertTrue(coordinator.logs.contains(where: { $0.message == "队列中没有待安装的文件" }))
     }
 
+    @MainActor
+    func testRCMModeDoesNotEnterGameInstallationChainOrLogInstallationFailure() {
+        let coordinator = InstallationCoordinator(transport: IdleMockTransport())
+        coordinator.transportMode = .rcm
+
+        coordinator.startInstallation()
+
+        XCTAssertEqual(coordinator.state, .idle)
+        XCTAssertTrue(coordinator.logs.isEmpty)
+    }
+
     // MARK: - DBI Backend mode
 
     @MainActor

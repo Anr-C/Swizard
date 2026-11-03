@@ -20,7 +20,9 @@ struct ConnectionStatusView: View {
     }
 
     private var statusText: String {
-        if isConnected {
+        if mode == .rcm {
+            isConnected ? "已检测到 RCM 设备" : "未检测到 RCM 设备"
+        } else if isConnected {
             "已连接到 Switch（\(mode.displayName)）"
         } else {
             "等待 Switch 连接……"
