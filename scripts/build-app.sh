@@ -41,6 +41,8 @@ mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 
 # Copy executable
 cp "${BUILD_DIR}/${APP_NAME}" "${MACOS_DIR}/${APP_NAME}"
+cp "${BUILD_DIR}/SWizard_RCMTransport.bundle/intermezzo.bin" "${RESOURCES_DIR}/intermezzo.bin"
+cp "${ROOT_DIR}/LICENSE-CrystalRCM.txt" "${RESOURCES_DIR}/"
 
 if [[ -f "${ICON_SOURCE}" ]]; then
     cp "${ICON_SOURCE}" "${RESOURCES_DIR}/${APP_NAME}.icns"

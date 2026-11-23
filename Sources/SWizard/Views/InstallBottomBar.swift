@@ -10,7 +10,7 @@ struct InstallBottomBar: View {
     /// USB modes require a connected device; Network mode doesn't.
     private var installRequiresDevice: Bool {
         switch coordinator.transportMode {
-        case .dbiBackend, .mtp:
+        case .dbiBackend, .mtp, .rcm:
             return !appState.isDeviceConnected
         case .network:
             return false
@@ -32,12 +32,26 @@ struct InstallBottomBar: View {
             }
 
             HStack {
-                InstallButtonView(
-                    state: coordinator.state,
-                    isDisabled: coordinator.progress.files.isEmpty || installRequiresDevice,
-                    onInstall: { coordinator.startInstallation() },
-                    onCancel: { coordinator.cancel() }
-                )
+                if coordinator.transportMode == .rcm {
+                    Button(appState.isRCMInjectionInProgress ? "注入中……" : "注入") {
+                        Task {
+                            await appState.injectRCMPayload()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                            !appState.isDeviceConnected
+                                || appState.rcmPayloadURL == nil
+                                || appState.isRCMInjectionInProgress
+                        )
+                } else {
+                    InstallButtonView(
+                        state: coordinator.state,
+                        isDisabled: coordinator.progress.files.isEmpty || installRequiresDevice,
+                        onInstall: { coordinator.startInstallation() },
+                        onCancel: { coordinator.cancel() }
+                    )
+                }
 
                 Spacer()
 
@@ -48,7 +62,7 @@ struct InstallBottomBar: View {
                 }
 
                 if appState.canClearQueue {
-                    Button("Clear Queue") {
+                    Button("清空队列") {
                         coordinator.clearQueue()
                     }
                     .buttonStyle(.plain)

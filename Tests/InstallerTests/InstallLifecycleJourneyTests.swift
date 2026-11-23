@@ -137,7 +137,7 @@ final class InstallLifecycleJourneyTests: XCTestCase {
         coordinator.queueFiles([game])
 
         XCTAssertEqual(coordinator.progress.files.map(\.name), ["dup.nsp"])
-        let skipped = coordinator.logs.filter { $0.level == .warning && $0.message.contains("already queued") }
+        let skipped = coordinator.logs.filter { $0.level == .warning && $0.message.contains("已在队列中") }
         XCTAssertEqual(skipped.count, 2)
 
         coordinator.startInstallation()

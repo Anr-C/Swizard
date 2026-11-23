@@ -15,6 +15,19 @@ let package = Package(
             providers: [.brew(["libusb"])]
         ),
 
+        .target(
+            name: "CRCMLegacy",
+            publicHeadersPath: "include",
+            linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreFoundation")]
+        ),
+
+        // Infrastructure — RCM payload transfer and IOKit trigger
+        .target(
+            name: "RCMTransport",
+            dependencies: ["CRCMLegacy"],
+            resources: [.copy("intermezzo.bin")]
+        ),
+
         // Infrastructure — USB device communication
         .target(
             name: "USBTransport",
@@ -60,7 +73,7 @@ let package = Package(
         // Presentation — SwiftUI app
         .executableTarget(
             name: "SWizard",
-            dependencies: ["Installer"]
+            dependencies: ["Installer", "RCMTransport"]
         ),
 
         // Tests
@@ -90,7 +103,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SWizardTests",
-            dependencies: ["SWizard", "NativeMTPTransport"]
+            dependencies: ["SWizard", "NativeMTPTransport", "RCMTransport"]
         ),
     ]
 )

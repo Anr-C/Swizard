@@ -55,16 +55,29 @@ struct ContentView: View {
 
             Divider()
 
-            DropZoneView { urls in
-                appState.coordinator.queueFiles(urls)
+            if appState.coordinator.transportMode == .rcm {
+                RCMPayloadPickerView(
+                    selectedURL: appState.rcmPayloadURL,
+                    selectionError: appState.rcmPayloadSelectionError,
+                    onSelect: { appState.selectRCMPayload($0) }
+                )
+                rcmInjectionStatus
+            } else {
+                DropZoneView { urls in
+                    appState.coordinator.queueFiles(urls)
+                }
+                .frame(height: 120)
+                .padding()
             }
-            .frame(height: 120)
-            .padding()
 
             Divider()
 
-            FileListView(files: appState.coordinator.progress.files)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if appState.coordinator.transportMode == .rcm {
+                Spacer(minLength: 0)
+            } else {
+                FileListView(files: appState.coordinator.progress.files)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
 
             Divider()
 
@@ -88,7 +101,7 @@ struct ContentView: View {
         .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .disabled(appState.isTransferActive)
+        .disabled(appState.isTransferActive || appState.isRCMInjectionInProgress)
     }
 
     // MARK: - MTP Test
@@ -274,5 +287,32 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder
+    private var rcmInjectionStatus: some View {
+        switch appState.rcmInjectionState {
+        case .idle:
+            EmptyView()
+        case .injecting:
+            ProgressView("正在调用 RCM 注入器……")
+                .font(.caption)
+                .padding(.horizontal)
+        case .requestFinished:
+            Label("注入请求已结束；请在设备上确认是否启动。", systemImage: "info.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+        case .unconfirmed(let message):
+            Label(message, systemImage: "questionmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .padding(.horizontal)
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .padding(.horizontal)
+        }
     }
 }

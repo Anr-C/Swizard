@@ -19,7 +19,7 @@ struct InstallButtonView: View {
             busy("正在连接……")
 
         case .connected:
-            busy("Connected, waiting...")
+            busy("已连接，等待中……")
 
         case .waitingForSwitch:
             HStack(spacing: 8) {
@@ -29,7 +29,7 @@ struct InstallButtonView: View {
 
         case .transferring:
             HStack(spacing: 8) {
-                Text("Installing...")
+                Text("安装中……")
                     .foregroundStyle(.secondary)
                 cancelButton
             }
@@ -46,7 +46,7 @@ struct InstallButtonView: View {
                 .foregroundStyle(.green)
 
         case .error:
-            Button("Retry", action: onInstall)
+            Button("重试", action: onInstall)
                 .buttonStyle(.borderedProminent)
                 .disabled(isDisabled)
         }
